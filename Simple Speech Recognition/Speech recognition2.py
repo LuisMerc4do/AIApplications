@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Jul 29 14:56:50 2024
 
-@author: asror
-"""
 import speech_recognition as sr
 def recognize_speech(recognizer, microphone):
     with microphone as source:
