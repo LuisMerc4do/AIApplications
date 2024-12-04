@@ -107,6 +107,6 @@ if __name__ == "__main__":
     # Keep the main program running while speech recognition happens in the background
     try:
         while True:
-            pass  # Keep the main program running
+            pass
     except KeyboardInterrupt:
         print("Program interrupted by user.")
