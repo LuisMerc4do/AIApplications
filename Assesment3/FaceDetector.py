@@ -8,49 +8,49 @@ import cv2
 
 # Global Constants
 DEFAULT_ENCODINGS_PATH = Path("output/encodings.pkl")
-# Color configuration for Square and text
+# Color configuration for bounding box and text
 BOUNDING_BOX_COLOR = (0, 255, 0)
 TEXT_COLOR = (255, 255, 255)
 
 # Function to train model with known images from the specified directory and save the face encodings
-def train_model(known_images_dir: str, encodings_path: Path = DEFAULT_ENCODINGS_PATH):
-    known_encodings = []
-    known_names = []
+def train_model(known_images_directory: str, encodings_path: Path = DEFAULT_ENCODINGS_PATH):
+    encodings_list = []
+    names_list = []
 
     # Iterate through each image in the training directory
-    for root, _, files in os.walk(known_images_dir):
+    for root, _, files in os.walk(known_images_directory):
         for file in files:
             # Takes any file ended with specific image format
             if file.lower().endswith(('jpg', 'jpeg', 'png')):
                 image_path = os.path.join(root, file)
                 # Use folder name as the label for the image
-                name = os.path.basename(root)  
+                label = os.path.basename(root)
                 # Load the image file from the path
                 image = face_recognition.load_image_file(image_path)
                 # Compute the facial encodings 
                 encodings = face_recognition.face_encodings(image)
                 # If facial encodings are found in the image then append encoding and name
                 if encodings:
-                    known_encodings.append(encodings[0])
-                    known_names.append(name)
+                    encodings_list.append(encodings[0])
+                    names_list.append(label)
 
     # Save the encodings to a file
-    data = {"encodings": known_encodings, "names": known_names}
+    data = {"encodings": encodings_list, "names": names_list}
     os.makedirs(encodings_path.parent, exist_ok=True)
-    with open(encodings_path, "wb") as f:
-        pickle.dump(data, f)
+    with open(encodings_path, "wb") as file:
+        pickle.dump(data, file)
     print(f"Training completed and saved to: {encodings_path}")
 
-# function that recognize faces from the weebcam
-def recognize_faces(encodings_location=DEFAULT_ENCODINGS_PATH, model="hog"):
+# Function that recognize faces from the webcam
+def recognize_faces(encodings_path=DEFAULT_ENCODINGS_PATH, model="hog"):
     # Load the trained encodings
-    with open(encodings_location, "rb") as f:
-        loaded_encodings = pickle.load(f)
+    with open(encodings_path, "rb") as file:
+        loaded_encodings = pickle.load(file)
 
     # Initialize the webcam
     video_capture = cv2.VideoCapture(0)
     
-    # Handling erros if came is not accessible
+    # Handling errors if camera is not accessible
     if not video_capture.isOpened():
         print("Error: Could not access the camera.")
         return
@@ -76,7 +76,6 @@ def recognize_faces(encodings_location=DEFAULT_ENCODINGS_PATH, model="hog"):
             distances = face_recognition.face_distance(loaded_encodings["encodings"], face_encoding)
             name = "Unknown"
             # If encodings of the face and the stored encodings are less than 0.6 distance then label it before displaying the frame
-            # Its possible to modify the distance, 0.6 according to my research, normally works.
             if len(distances) > 0 and min(distances) < 0.6:
                 best_match_index = distances.argmin()
                 name = loaded_encodings["names"][best_match_index]
@@ -89,7 +88,7 @@ def recognize_faces(encodings_location=DEFAULT_ENCODINGS_PATH, model="hog"):
         # Display the frame with annotations
         cv2.imshow('Face Recognition', frame)
         
-        # Exit the loop when 'q' is pressed
+        # Exit the loop when q pressed
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     
@@ -97,18 +96,17 @@ def recognize_faces(encodings_location=DEFAULT_ENCODINGS_PATH, model="hog"):
     video_capture.release()
     cv2.destroyAllWindows()
 
-# Function to validate the model using images from the val directiory and print performance metrics for learning purposes
-def validate_model(val_images_dir: str, encodings_path: Path = DEFAULT_ENCODINGS_PATH, model: str = "hog"):
-    # We use the hog model for fast responses
+# Function to validate the model using images from the validation directory and print performance metrics for learning purposes
+def validate_model(validation_images_directory: str, encodings_path: Path = DEFAULT_ENCODINGS_PATH, model: str = "hog"):
     # Load the trained encodings
-    with open(encodings_path, "rb") as f:
-        loaded_encodings = pickle.load(f)
+    with open(encodings_path, "rb") as file:
+        loaded_encodings = pickle.load(file)
 
     true_labels = []
     predicted_labels = []
 
     # Iterate through each image in the validation directory
-    for root, _, files in os.walk(val_images_dir):
+    for root, _, files in os.walk(validation_images_directory):
         for file in files:
             if file.lower().endswith(('jpg', 'jpeg', 'png')):
                 image_path = os.path.join(root, file)
@@ -122,13 +120,11 @@ def validate_model(val_images_dir: str, encodings_path: Path = DEFAULT_ENCODINGS
 
                 for unknown_encoding in input_face_encodings:
                     # Calculate distances and find the best match
-                    # barely the same implementation we used before for the face recognition
                     distances = face_recognition.face_distance(loaded_encodings["encodings"], unknown_encoding)
+                    predicted_label = "Unknown"
                     if len(distances) > 0 and min(distances) < 0.6:
                         best_match_index = distances.argmin()
                         predicted_label = loaded_encodings["names"][best_match_index]
-                    else:
-                        predicted_label = "Unknown"
 
                     true_labels.append(true_label)
                     predicted_labels.append(predicted_label)
@@ -141,19 +137,20 @@ def validate_model(val_images_dir: str, encodings_path: Path = DEFAULT_ENCODINGS
 
     print(f"Validation Metrics:\nAccuracy: {accuracy:.2f}\nPrecision: {precision:.2f}\nRecall: {recall:.2f}\nF1-score: {f1:.2f}")
 
-# Argument parser setup
-parser = argparse.ArgumentParser(description="Face recognition script")
-parser.add_argument("--train", help="Train with a directory of known faces", metavar="DIR")
-parser.add_argument("--validate", help="Validate the model with a directory of validation images", metavar="DIR")
-parser.add_argument("--model", default="hog", choices=["hog", "cnn"], help="Face detection model to use (hog or cnn)")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Face recognition script")
+    # python FaceDetector.py --train known_faces
+    parser.add_argument("--train", help="Train with a directory of known faces", metavar="DIR")
+    # python FaceDetector.py --validate val hog
+    parser.add_argument("--validate", help="Validate the model with a directory of validation images", metavar="DIR")
+    parser.add_argument("--model", default="hog", choices=["hog", "cnn"], help="Face detection model to use (hog or cnn)")
 
-# Parse arguments and execute corresponding functions
-args = parser.parse_args()
-# In a real implementation we should modify this
-recognize_faces()
+    args = parser.parse_args()
 
-if args.train:
-    train_model(args.train)
+    if args.train:
+        train_model(args.train)
 
-if args.validate:
-    validate_model(args.validate, model=args.model)
+    if args.validate:
+        validate_model(args.validate, model=args.model)
+
+    recognize_faces()
