@@ -6,6 +6,7 @@ class SpeechRecognition:
         # Initialize the recognizer and microphone functions from sr
         self.recognizer = sr.Recognizer()
         self.microphone = sr.Microphone()
+       # test 
 
     def recognize_speech(self):
         # Listen to the microphone for speech and prints recognized test
