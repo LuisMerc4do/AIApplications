@@ -1,9 +1,9 @@
 import speech_recognition as sr
 import threading
-
+# FINAL MARK 85
 class SpeechRecognition:
     def __init__(self):
-        # Initialize the recognizer and microphone functions from sr
+        # Initialize the recognizer and microphone functions from sr 
         self.recognizer = sr.Recognizer()
         self.microphone = sr.Microphone()
        # test 
